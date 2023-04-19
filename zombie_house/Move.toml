@@ -1,0 +1,15 @@
+[package]
+name = "zombie_house"
+version = "0.0.1"
+published-at = "0xcc5dc9b0a6bbf5b613f7e63d3bbd8bd4257cdc1f0c03ac98a568c8d6e21e990f"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "a63f425b9999c7fdfe483598720a9effc0acdc9e" }
+NftProtocol = { local = "../nft-protocol/" }
+zpt_coin = { local = "../zpt_coin" }
+
+[addresses]
+zombie_house =  "0x0"
+sui =  "0000000000000000000000000000000000000000000000000000000000000002"
+nft_protocol = "0x724c3f73b2a11b3f559311ebde3d31ef36d337c4c9979e0f65c82dbddaaae4d9"
+zpt_coin = "0x56c77a6802092355c906ba967f2f557189b1bf6ccf0f5a15e53fe0b13d83da12"
