@@ -1,0 +1,11 @@
+{
+  "name": "zombie_scripts",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@mysten/bcs": "^0.7.0",
+    "@mysten/sui.js": "^0.32.1",
+    "bignumber.js": "^9.1.1"
+  }
+}

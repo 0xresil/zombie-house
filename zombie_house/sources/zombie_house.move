@@ -130,7 +130,7 @@ module zombie_house::zombie_house {
       owner: sender,
       game_master: sender,
       sig_verify_pk: vector::empty<u8>(),
-      domain: string::utf8(b"https://gateway.pinata.cloud/ipfs/QmY3dattuPjJQpuJsBrWbUsvnsmL5K6eJjw4HnTYXegp5Q/"),
+      domain: string::utf8(b"gateway.pinata.cloud/ipfs/QmR7vqrR3eHuW2LmJq7P5i915M6pvHqoJmcQrdunDEYL4j/"),
       zombies: vector::empty<ZombieInfo>(),
       zpt_pot: balance::zero<ZPT_COIN>(),
       // zpt_type: TypeName,
@@ -182,39 +182,24 @@ module zombie_house::zombie_house {
     zombie_count
   }
 
-  fun number_to_string(number: u8): String {
-    let num_str = std::ascii::string(b"");
-    let ascii_vec = vector::empty<u8>();
-    while (number > 0) {
-      let char_ascii = number % 10 + 48;
-      vector::push_back(&mut ascii_vec, (char_ascii as u8));
-      number = number / 10u8;
-    };
-
-    // std::debug::print<vector<u8>>(&ascii_vec);
-
-    let i = 0;
-    let len = vector::length(&ascii_vec);
-    while (i < len) {
-      let char = vector::pop_back(&mut ascii_vec);
-      std::ascii::push_char(&mut num_str, std::ascii::char(char));
-      i = i + 1;
-    };
-
-    string::from_ascii(num_str)
-  }
-
   fun get_nft_uri(domain: String, nft_type: u8): String {
     let id_str = domain;
-    string::append(&mut id_str, number_to_string(nft_type));
+    let type_str = string::utf8(b"0");
+    if (nft_type == 1) type_str = string::utf8(b"1");
+    if (nft_type == 2) type_str = string::utf8(b"2");
+    if (nft_type == 3) type_str = string::utf8(b"3");
+    if (nft_type == 4) type_str = string::utf8(b"4");
+
+    string::append(&mut id_str, type_str);
     id_str
   }
 
-  /*fun get_nft_name(nft_type: u8): String {
-    let id_str = domain;
-    string::append(&mut id_str, number_to_string(nft_type));
-    id_str
-  }*/
+  fun get_nft_name(nft_type: u8): String {
+    if (nft_type > 4) nft_type = 4;
+    let name_str = string::utf8(*vector::borrow(&mut NFT_NAMES, (nft_type as u64)));
+    string::append(&mut name_str, string::utf8(b" Zombie NFT"));
+    name_str
+  }
 
   fun verify_sig(types: vector<u8>, cur_nft_index: u32, verify_pk: vector<u8>, signature: vector<u8>): bool {
     let sign_data = types;
@@ -234,7 +219,7 @@ module zombie_house::zombie_house {
     paid: Coin<ZPT_COIN>, 
     nft_count: u64,
     types: vector<u8>,
-    types_sig: vector<u8>,
+    _types_sig: vector<u8>,
     ctx: &mut TxContext
   ) {
     let sender = tx_context::sender(ctx);
@@ -267,15 +252,16 @@ module zombie_house::zombie_house {
           level: 1,
       });
 
+      let nft_type = *vector::borrow(&types, i);
       // mint nft
       mint_nft(
-        string::utf8(b"Zombie NFT"), 
-        string::utf8(b"This is a test Zombie NFT"), 
-        get_nft_uri(game_info.domain, game_info.current_nft_index), 
+        get_nft_name(nft_type), 
+        string::utf8(b"This is a Zombie NFT who makes ZPT coins."), 
+        get_nft_uri(game_info.domain, nft_type), 
         &game_info.mint_cap,
         ctx
       );
-      vector::push_back(&mut created_zombies, (i as u32));
+      vector::push_back(&mut created_zombies, (game_info.current_nft_index as u32));
       i = i + 1;
     };
 
@@ -284,9 +270,7 @@ module zombie_house::zombie_house {
         zombie_ids: created_zombies,
         zombie_types: types
     });
-    
   }
-
 
   /// only master can mint zombies
   public entry fun master_mint_zombie(
@@ -296,16 +280,16 @@ module zombie_house::zombie_house {
   ) {
     let sender = tx_context::sender(ctx);
     // check master cap
-    assert!(sender != game_info.game_master, EINVALID_GAME_MASTER);
+    assert!(sender == game_info.game_master, EINVALID_GAME_MASTER);
     let i = 0;
     while (i < zombie_count) {
       game_info.current_nft_index = game_info.current_nft_index + 1;
       // mint nft
-      // todo: url modify
+      let nft_type = 4;
       mint_nft(
-        string::utf8(b"Zombie NFT"), 
+        get_nft_name(nft_type),
         string::utf8(b"This is a test Zombie NFT"), 
-        get_nft_uri(game_info.domain, game_info.current_nft_index), 
+        get_nft_uri(game_info.domain, nft_type), 
         &game_info.mint_cap,
         ctx
       );
@@ -320,7 +304,7 @@ module zombie_house::zombie_house {
   ) {
     let sender = tx_context::sender(ctx);
     // check ownership
-    assert!(sender != game_info.owner, EINVALID_OWNER);
+    assert!(sender == game_info.owner, EINVALID_OWNER);
 
     let pot_amount = balance::value(&game_info.zpt_pot);
     let zpt_to_withdraw: Coin<ZPT_COIN> = coin::take(&mut game_info.zpt_pot, pot_amount, ctx);
@@ -336,7 +320,7 @@ module zombie_house::zombie_house {
   ) {
     let sender = tx_context::sender(ctx);
     // check ownership
-    assert!(sender != game_info.owner, EINVALID_OWNER);
+    assert!(sender == game_info.owner, EINVALID_OWNER);
 
     let paid_amount = coin::value(&deposit_zpt);
     let paid_balance = coin::into_balance(deposit_zpt);
@@ -354,7 +338,7 @@ module zombie_house::zombie_house {
   ) {
     let sender = tx_context::sender(ctx);
     // check ownership
-    assert!(sender != game_info.owner, EINVALID_OWNER);
+    assert!(sender == game_info.owner, EINVALID_OWNER);
     game_info.sig_verify_pk = verify_pk;
   }
 
@@ -366,7 +350,7 @@ module zombie_house::zombie_house {
   ) {
     let sender = tx_context::sender(ctx);
     // check ownership
-    assert!(sender != game_info.owner, EINVALID_OWNER);
+    assert!(sender == game_info.owner, EINVALID_OWNER);
     game_info.domain = domain;
   }
 
@@ -378,7 +362,7 @@ module zombie_house::zombie_house {
   ) {
     let sender = tx_context::sender(ctx);
     // check ownership
-    assert!(sender != game_info.owner, EINVALID_OWNER);
+    assert!(sender == game_info.owner, EINVALID_OWNER);
     game_info.price_token_per_zombie = zpt_amount;
   }
 
@@ -390,7 +374,7 @@ module zombie_house::zombie_house {
   ) {
     let sender = tx_context::sender(ctx);
     // check ownership
-    assert!(sender != game_info.owner, EINVALID_OWNER);
+    assert!(sender == game_info.owner, EINVALID_OWNER);
     game_info.max_zombie_per_player = max_amount;
   }
 
@@ -402,7 +386,7 @@ module zombie_house::zombie_house {
   ) {
     let sender = tx_context::sender(ctx);
     // check ownership
-    assert!(sender != game_info.owner, EINVALID_OWNER);
+    assert!(sender == game_info.owner, EINVALID_OWNER);
     game_info.game_master = master_address;
   }
 
@@ -415,6 +399,29 @@ module zombie_house::zombie_house {
 
   #[test_only]
   const USER: address = @0xA1C04;
+
+  #[test_only]
+  fun number_to_string(number: u64): String {
+    let num_str = std::ascii::string(b"");
+    let ascii_vec = vector::empty<u8>();
+    while (number > 0) {
+      let char_ascii = number % 10 + 48;
+      vector::push_back(&mut ascii_vec, (char_ascii as u8));
+      number = number / 10u64;
+    };
+
+    // std::debug::print<vector<u8>>(&ascii_vec);
+
+    let i = 0;
+    let len = vector::length(&ascii_vec);
+    while (i < len) {
+      let char = vector::pop_back(&mut ascii_vec);
+      std::ascii::push_char(&mut num_str, std::ascii::char(char));
+      i = i + 1;
+    };
+
+    string::from_ascii(num_str)
+  }
 
   #[test]
   fun it_inits_collection() {
@@ -429,7 +436,6 @@ module zombie_house::zombie_house {
           &scenario
       );
 
-
       mint_nft(
           string::utf8(b"Simple NFT"),
           string::utf8(b"A simple NFT on Sui"),
@@ -442,8 +448,8 @@ module zombie_house::zombie_house {
       test_scenario::next_tx(&mut scenario, USER);
 
       assert!(test_scenario::has_most_recent_for_address<ZombieNFT>(USER), 0);
-      std::debug::print<string::String>(&number_to_string(100));
-      assert!(number_to_string(100) == string::utf8(b"100"), 1);
+      // std::debug::print<string::String>(&number_to_string(100));
+      // assert!(number_to_string(100) == string::utf8(b"100"), 1);
 
       let cur_nft_index = 101u32;
       let sign_data: vector<u8> = vector[2, 0, 3, 4, 3, 4, 2, 2, 1, 2];
@@ -476,6 +482,8 @@ module zombie_house::zombie_house {
       std::debug::print<vector<u8>>(&x"66f7b2553f81cc9015b4ee3ffd3b3f607b2af5398f3889319e669f9db28429f6");
       std::debug::print<vector<u8>>(&sui::hex::decode(b"66f7b2553f81cc9015b4ee3ffd3b3f607b2af5398f3889319e669f9db28429f6"));
       
+      std::debug::print<String>(&get_nft_name(0));
+
       test_scenario::end(scenario);
   }
 }

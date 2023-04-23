@@ -1,7 +1,7 @@
 [package]
 name = "zombie_house"
 version = "0.0.1"
-published-at = "0x04144ea72eed5bb3a528ee222f4c41715d9dc42065411743fae127a250ae4f39"
+published-at = "0xbf9d6c9fab02ca25b2b3fa13c91e264dee6c99f64b57673e0c4c64edc1804961"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "a63f425b9999c7fdfe483598720a9effc0acdc9e" }
