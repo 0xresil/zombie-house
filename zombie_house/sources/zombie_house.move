@@ -31,6 +31,11 @@ module zombie_house::zombie_house {
   const EINSUFFICIENT_ZPT_AMOUNT: u64 = 5;
   const EINVALID_GAME_MASTER: u64 = 6;
   const EEXCEED_MAX_ZOMBIE_COUNT: u64 = 7;
+  const EINVALID_CLAIM_NONCE: u64 = 8;
+  const EINVALID_CLAIM_AMOUNT: u64 = 9;
+  const EINVALID_SIGNATURE: u64 = 10;
+  const EALREADY_GOT_AIRDROP: u64 = 11;
+  const EINVLAID_AIRDROP_STATUS: u64 = 12;
 
   // zpt is 9 decimals
   const TOKEN_DECIMAL: u64 = 1000000000;
@@ -41,6 +46,7 @@ module zombie_house::zombie_house {
     b"Police",
     b"Priate",
   ];
+  const AIRDROP_AMOUNT: u64 = 1000 * 1000000000;
 
   /// One time witness is only instantiated in the init method
   struct ZOMBIE_HOUSE has drop {}
@@ -76,7 +82,13 @@ module zombie_house::zombie_house {
     max_zombie_per_player: u64,
     mint_cap: MintCap<ZombieNFT>,
     current_nft_index: u64,
-    earned_zpt_amt: u64
+    earned_zpt_amt: u64,
+    claim_nonce: u64,
+
+    // aidrop
+    airdrop_amount: u64,
+    airdrop_status: u8,
+    claimed_users: vector<address>
   }
 
   // events
@@ -90,6 +102,12 @@ module zombie_house::zombie_house {
     player: address,
     zombie_ids: vector<u32>,
     zombie_types: vector<u8>
+  }
+
+  struct PlayerClaimedEarnedZPT has copy, drop {
+    player: address,
+    amount: u64,
+    nonce: u64
   }
   
   fun init(otw: ZOMBIE_HOUSE, ctx: &mut TxContext) {
@@ -138,88 +156,47 @@ module zombie_house::zombie_house {
       max_zombie_per_player: 20,
       mint_cap,
       current_nft_index: 0,
-      earned_zpt_amt: 0
+      earned_zpt_amt: 0,
+      claim_nonce: 0,
+
+      airdrop_amount: AIRDROP_AMOUNT,
+      airdrop_status: 1,
+      claimed_users: vector::empty<address>()
     });
 
     transfer::public_share_object(collection);
   }
 
-  /// Create a new zombie nft
-  fun mint_nft(
-      name: String,
-      description: String,
-      url: String,
-      _mint_cap: &MintCap<ZombieNFT>,
-      ctx: &mut TxContext
+  public entry fun claim_earned_zpt(
+    game_info: &mut GameInfo,
+    claim_amount: u64,
+    sig: vector<u8>,
+    ctx: &mut TxContext
   ) {
-      let sender = tx_context::sender(ctx);
-      let nft = ZombieNFT {
-          id: object::new(ctx),
-          name,
-          description,
-          url: url::new_unsafe(string::to_ascii(url))
-      };
+    assert!(verify_claim_sig(claim_amount, game_info.claim_nonce, game_info.sig_verify_pk, sig), EINVALID_SIGNATURE);
 
-      event::emit(NFTMinted {
-          object_id: object::id(&nft),
-          creator: sender,
-          name: nft.name,
-      });
+    let sender = tx_context::sender(ctx);
+    let pot_amount = balance::value(&game_info.zpt_pot);
+    assert!(claim_amount < pot_amount, EINVALID_CLAIM_AMOUNT);
 
-      transfer::public_transfer(nft, sender);
+    let zpt_to_claim: Coin<ZPT_COIN> = coin::take(&mut game_info.zpt_pot, claim_amount, ctx);
+    transfer::public_transfer(zpt_to_claim, sender);
+
+    game_info.claim_nonce = game_info.claim_nonce + 1;
+
+    event::emit(PlayerClaimedEarnedZPT {
+        player: sender,
+        nonce: game_info.claim_nonce,
+        amount: claim_amount
+    });
   }
-
-  fun get_zombie_amount(zombies: &vector<ZombieInfo>, owner: address): u64 {
-    let index = 0;
-    let zombie_count: u64 = 0;
-    while (index < vector::length(zombies)) {
-      let zombie_info = vector::borrow(zombies, index);
-      if (zombie_info.zombie_owner == owner) {
-        zombie_count = zombie_count + 1;
-      };
-      index = index + 1;
-    };
-    zombie_count
-  }
-
-  fun get_nft_uri(domain: String, nft_type: u8): String {
-    let id_str = domain;
-    let type_str = string::utf8(b"0");
-    if (nft_type == 1) type_str = string::utf8(b"1");
-    if (nft_type == 2) type_str = string::utf8(b"2");
-    if (nft_type == 3) type_str = string::utf8(b"3");
-    if (nft_type == 4) type_str = string::utf8(b"4");
-
-    string::append(&mut id_str, type_str);
-    id_str
-  }
-
-  fun get_nft_name(nft_type: u8): String {
-    if (nft_type > 4) nft_type = 4;
-    let name_str = string::utf8(*vector::borrow(&mut NFT_NAMES, (nft_type as u64)));
-    string::append(&mut name_str, string::utf8(b" Zombie NFT"));
-    name_str
-  }
-
-  fun verify_sig(types: vector<u8>, cur_nft_index: u32, verify_pk: vector<u8>, signature: vector<u8>): bool {
-    let sign_data = types;
-    let index_bytes = std::bcs::to_bytes(&(cur_nft_index as u64));
-    vector::append(&mut sign_data, index_bytes);
-    let verify = ed25519::ed25519_verify(
-      &signature, 
-      &verify_pk, 
-      &sign_data
-    );
-    verify
-  }
-
   /// buy zombie with specific amount of zpt token
   public entry fun buy_zombie(
     game_info: &mut GameInfo,
     paid: Coin<ZPT_COIN>, 
     nft_count: u64,
     types: vector<u8>,
-    _types_sig: vector<u8>,
+    types_sig: vector<u8>,
     ctx: &mut TxContext
   ) {
     let sender = tx_context::sender(ctx);
@@ -227,6 +204,7 @@ module zombie_house::zombie_house {
     assert!(nft_count != 0, EWRONG_ZOMBIE_AMOUNT);
     let zpt_required = nft_count * game_info.price_token_per_zombie;
     assert!(coin::value(&paid) > zpt_required, EINSUFFICIENT_ZPT_AMOUNT);
+    assert!(verify_types_sig(types, game_info.current_nft_index, game_info.sig_verify_pk, types_sig) == true, EINVALID_SIGNATURE);
 
     // check nft count per user
     assert!(get_zombie_amount(&game_info.zombies, sender) < game_info.max_zombie_per_player, EEXCEED_MAX_ZOMBIE_COUNT);
@@ -330,16 +308,35 @@ module zombie_house::zombie_house {
     balance::join(&mut game_info.zpt_pot, paid_balance);
   }
 
+  /// airdrop
+  public entry fun get_airdrop (
+    game_info: &mut GameInfo,
+    ctx: &mut TxContext
+  ) {
+    let sender = tx_context::sender(ctx);
+
+    assert!(game_info.airdrop_status == 1, EINVLAID_AIRDROP_STATUS);
+    assert!(!vector::contains(&game_info.claimed_users, &sender), EALREADY_GOT_AIRDROP);
+
+    let pot_amount = balance::value(&game_info.zpt_pot);
+    assert!(game_info.airdrop_amount <= pot_amount, EINSUFFICIENT_ZPT_AMOUNT);
+
+    let zpt_to_withdraw: Coin<ZPT_COIN> = coin::take(&mut game_info.zpt_pot, game_info.airdrop_amount, ctx);
+    transfer::public_transfer(zpt_to_withdraw, sender);
+
+    vector::push_back(&mut game_info.claimed_users, sender);
+  }
+
   /// update base_uri of nft token_uri
   public entry fun set_verify_pk (
     game_info: &mut GameInfo,
-    verify_pk: vector<u8>,
+    verify_pk_str: String,
     ctx: &mut TxContext,
   ) {
     let sender = tx_context::sender(ctx);
     // check ownership
     assert!(sender == game_info.owner, EINVALID_OWNER);
-    game_info.sig_verify_pk = verify_pk;
+    game_info.sig_verify_pk = sui::hex::decode(*string::bytes(&verify_pk_str));
   }
 
   /// update base_uri of nft token_uri
@@ -388,6 +385,116 @@ module zombie_house::zombie_house {
     // check ownership
     assert!(sender == game_info.owner, EINVALID_OWNER);
     game_info.game_master = master_address;
+  }
+
+  /// update airdrop status
+  public entry fun update_airdrop_status (
+    game_info: &mut GameInfo,
+    new_status: u8,
+    ctx: &mut TxContext,
+  ) {
+    let sender = tx_context::sender(ctx);
+    // check ownership
+    assert!(sender == game_info.owner, EINVALID_OWNER);
+    game_info.airdrop_status = new_status;
+  }
+
+  /// update airdrop status
+  public entry fun update_airdrop_amount (
+    game_info: &mut GameInfo,
+    new_amount: u64,
+    ctx: &mut TxContext,
+  ) {
+    let sender = tx_context::sender(ctx);
+    // check ownership
+    assert!(sender == game_info.owner, EINVALID_OWNER);
+    game_info.airdrop_amount = new_amount;
+  }
+  
+  /// Create a new zombie nft
+  fun mint_nft(
+      name: String,
+      description: String,
+      url: String,
+      _mint_cap: &MintCap<ZombieNFT>,
+      ctx: &mut TxContext
+  ) {
+      let sender = tx_context::sender(ctx);
+      let nft = ZombieNFT {
+          id: object::new(ctx),
+          name,
+          description,
+          url: url::new_unsafe(string::to_ascii(url))
+      };
+
+      event::emit(NFTMinted {
+          object_id: object::id(&nft),
+          creator: sender,
+          name: nft.name,
+      });
+
+      transfer::public_transfer(nft, sender);
+  }
+
+  fun get_zombie_amount(zombies: &vector<ZombieInfo>, owner: address): u64 {
+    let index = 0;
+    let zombie_count: u64 = 0;
+    while (index < vector::length(zombies)) {
+      let zombie_info = vector::borrow(zombies, index);
+      if (zombie_info.zombie_owner == owner) {
+        zombie_count = zombie_count + 1;
+      };
+      index = index + 1;
+    };
+    zombie_count
+  }
+
+  fun get_nft_uri(domain: String, nft_type: u8): String {
+    let id_str = domain;
+    let type_str = string::utf8(b"0");
+    if (nft_type == 1) type_str = string::utf8(b"1");
+    if (nft_type == 2) type_str = string::utf8(b"2");
+    if (nft_type == 3) type_str = string::utf8(b"3");
+    if (nft_type == 4) type_str = string::utf8(b"4");
+
+    string::append(&mut id_str, type_str);
+    id_str
+  }
+
+  fun get_nft_name(nft_type: u8): String {
+    if (nft_type > 4) nft_type = 4;
+    let name_str = string::utf8(*vector::borrow(&mut NFT_NAMES, (nft_type as u64)));
+    string::append(&mut name_str, string::utf8(b" Zombie NFT"));
+    name_str
+  }
+
+  fun verify_claim_sig(claim_amount: u64, claim_nonce: u64, verify_pk: vector<u8>, signature: vector<u8>): bool {
+    
+    let amount_bytes = std::bcs::to_bytes(&(claim_amount as u64));
+    let nonce_bytes = std::bcs::to_bytes(&(claim_nonce as u64));
+    vector::append(&mut amount_bytes, nonce_bytes);
+    let verify = ed25519::ed25519_verify(
+      &signature, 
+      &verify_pk, 
+      &amount_bytes
+    );
+    verify
+  }
+  
+  fun verify_types_sig(types: vector<u8>, cur_nft_index: u64, verify_pk: vector<u8>, signature: vector<u8>): bool {
+    let sign_data = types;
+    let index_bytes = std::bcs::to_bytes(&cur_nft_index);
+    vector::append(&mut sign_data, index_bytes);
+
+    std::debug::print<String>(&string::utf8(b"verify_types_sig"));
+    std::debug::print<vector<u8>>(&sign_data);
+
+    let verify = ed25519::ed25519_verify(
+      &signature, 
+      &verify_pk, 
+      &sign_data
+    );
+    verify
   }
 
   // === Integration test ===
@@ -451,7 +558,7 @@ module zombie_house::zombie_house {
       // std::debug::print<string::String>(&number_to_string(100));
       // assert!(number_to_string(100) == string::utf8(b"100"), 1);
 
-      let cur_nft_index = 101u32;
+      let cur_nft_index = 101u64;
       let sign_data: vector<u8> = vector[2, 0, 3, 4, 3, 4, 2, 2, 1, 2];
       std::debug::print<vector<u8>>(&sign_data);
       let index_bytes = std::bcs::to_bytes(&(cur_nft_index as u64));
@@ -471,11 +578,18 @@ module zombie_house::zombie_house {
       );
       std::debug::print<bool>(&verify1);
 
-      std::debug::print<bool>(&verify_sig(
+      std::debug::print<bool>(&verify_types_sig(
         vector[2, 0, 3, 4, 3, 4, 2, 2, 1, 2],
         cur_nft_index,
         x"66f7b2553f81cc9015b4ee3ffd3b3f607b2af5398f3889319e669f9db28429f6",
         x"b11280dc26ad7fd9165f4d4aef78b5946fe4714d481d6a4032c6fd510bdc89d4345c0fc9ead0dbe899db6fc8b0d826a11bb813847538286add0affe77a384101",
+      ));
+
+      std::debug::print<bool>(&verify_claim_sig(
+        20000,
+        101,
+        x"66f7b2553f81cc9015b4ee3ffd3b3f607b2af5398f3889319e669f9db28429f6",
+        x"1524c0d09c4c973580401d11b5f5a74daa9b42f308a7afb707eaf18b62ad483e0d9dc9cb389b339e8ad771dcfe8d63a72a3517db77bd154f9521624253e8600f",
       ));
 
 
@@ -483,6 +597,24 @@ module zombie_house::zombie_house {
       std::debug::print<vector<u8>>(&sui::hex::decode(b"66f7b2553f81cc9015b4ee3ffd3b3f607b2af5398f3889319e669f9db28429f6"));
       
       std::debug::print<String>(&get_nft_name(0));
+
+      let str = string::utf8(b"66f7b2553f81cc9015b4ee3ffd3b3f607b2af5398f3889319e669f9db28429f6");
+      std::debug::print<String>(&str);
+      std::debug::print<vector<u8>>(&sui::hex::decode(*string::bytes(&str)));
+
+      std::debug::print<bool>(&verify_types_sig(
+        vector[1],
+        0,
+        x"66f7b2553f81cc9015b4ee3ffd3b3f607b2af5398f3889319e669f9db28429f6",
+        x"4e7819d7cae068297c2ebc8ca1fc2a3191d26aa6cd2caff9cefd37cb680054f3b59c9893260a419a341c45fad56e596e7f59af76545dd84bdaf20e767093780f",
+      ));
+
+      std::debug::print<bool>(&verify_claim_sig(
+        1000,
+        0,
+        x"66f7b2553f81cc9015b4ee3ffd3b3f607b2af5398f3889319e669f9db28429f6",
+        x"eb99203e09809d539833282754b18b712082e1477367f0af9d6dd18900bbb75611d3fc8dea0b8815f45db398f7ac3e256d63e6f193b11692b0871f1c3e58e803",
+      ));
 
       test_scenario::end(scenario);
   }
