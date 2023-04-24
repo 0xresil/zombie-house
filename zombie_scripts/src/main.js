@@ -23,10 +23,11 @@ const provider = new JsonRpcProvider(connection);
 
 const userAddress = "0x51657bf952923f065e2a4ae32bfe971a8c4f40ce4fed8590db4d024420a9e60a";
 const zptCoinType = "0x56c77a6802092355c906ba967f2f557189b1bf6ccf0f5a15e53fe0b13d83da12::zpt_coin::ZPT_COIN";
-const packageId = "0xbf9d6c9fab02ca25b2b3fa13c91e264dee6c99f64b57673e0c4c64edc1804961";
+const packageId = "0xe1956a88b8810a248a5fb8b3063e57d97fe17b6318996620908d8512da3bcb93";
 // const deployTxHash = "B41moK2xazCDtsodqB42dKihE3H9vfvgn4gfDS3B7Bxn";
 const gameInfoType = `${packageId}::zombie_house::GameInfo`;
 const displayCreatedEvent = `0x2::display::DisplayCreated<${packageId}::zombie_house::ZombieNFT>`;
+const claimZptEvent = `${packageId}::zombie_house::PlayerClaimedEarnedZPT`;
 
 const get_coin_amount = async (
   userAddress,
@@ -39,6 +40,32 @@ const get_coin_amount = async (
   });
   let real_value = new BigNumber(balanceData.totalBalance).dividedBy(Math.pow(10, coinDecimals)).toString();
   console.log(real_value);
+}
+const registerClaimEvent = async () => {
+  console.log("registerClaimEvent");
+  await provider.subscribeEvent({
+    filter: {
+      MoveEventType: claimZptEvent
+    }, 
+    onMessage: (event) => {
+      console.log("event =", event);
+    }
+  })
+}
+
+const registerAllEvents = async () => {
+  console.log("registerAllEvents");
+  await provider.subscribeEvent({
+    filter: {
+      MoveModule: {
+        module: "zombie_house",
+        package: packageId,
+      }
+    }, 
+    onMessage: (event) => {
+      console.log("allEvent =", event);
+    }
+  })
 }
 
 const getGameInfoAddress = async () => {
@@ -218,6 +245,13 @@ const signTypesArray = async (nftCount) => {
   const signature = keypair.signData(signData);
   console.log(signature);
   console.log("hex sig =", toHEX(signature));
+
+  console.log("pk =", keypair.getPublicKey().toBytes());
+
+  let keyStr = "";
+  keypair.getPublicKey().toBytes().forEach((v) => keyStr += String.fromCharCode(v));
+  console.log('keystr =', keyStr);
+  
 /*
   const isValid = await verifyMessage(
     signData,
@@ -251,7 +285,7 @@ const main = async () => {
   console.log(objects);
 }
 
-main()
+// main()
 // todo: buyzombie_by_token
 //~ 3. mint event fetch
 //~~ 4. execute transaction
@@ -267,7 +301,9 @@ getGameInfoAddress().then(async (gameInfoId) => {
 });
 */
 //mergeCoins(userAddress, zptCoinType);
-fetchEvent();
+// fetchEvent();
 
 
 // signTypesArray(10);
+registerClaimEvent();
+// registerAllEvents();
