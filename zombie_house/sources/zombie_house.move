@@ -22,7 +22,7 @@ module zombie_house::zombie_house {
   use nft_protocol::display_info;
   use nft_protocol::mint_cap::MintCap;
 
-  use zpt_coin::zpt_coin::ZPT_COIN;
+  use zbs_coin::zbs_coin::ZBS_COIN;
 
   const EINVALID_OWNER: u64 = 1;
   const EESCROW_ALREADY_INITED: u64 = 2;
@@ -66,7 +66,8 @@ module zombie_house::zombie_house {
   struct ZombieInfo has copy, drop, store {
     zombie_owner: address,
     zombie_id: u32,
-    level: u8 //1,2,3,4,5
+    level: u8, //1,2,3,4,5
+    type: u8,
   }
 
   struct GameInfo has key {
@@ -76,7 +77,7 @@ module zombie_house::zombie_house {
     domain: String,
     sig_verify_pk: vector<u8>,
     zombies: vector<ZombieInfo>,
-    zpt_pot: Balance<ZPT_COIN>,
+    zpt_pot: Balance<ZBS_COIN>,
     // zpt_type: TypeName,
     price_token_per_zombie: u64,
     max_zombie_per_player: u64,
@@ -150,7 +151,7 @@ module zombie_house::zombie_house {
       sig_verify_pk: vector::empty<u8>(),
       domain: string::utf8(b"gateway.pinata.cloud/ipfs/QmR7vqrR3eHuW2LmJq7P5i915M6pvHqoJmcQrdunDEYL4j/"),
       zombies: vector::empty<ZombieInfo>(),
-      zpt_pot: balance::zero<ZPT_COIN>(),
+      zpt_pot: balance::zero<ZBS_COIN>(),
       // zpt_type: TypeName,
       price_token_per_zombie: 1000*TOKEN_DECIMAL,
       max_zombie_per_player: 20,
@@ -179,7 +180,7 @@ module zombie_house::zombie_house {
     let pot_amount = balance::value(&game_info.zpt_pot);
     assert!(claim_amount < pot_amount, EINVALID_CLAIM_AMOUNT);
 
-    let zpt_to_claim: Coin<ZPT_COIN> = coin::take(&mut game_info.zpt_pot, claim_amount, ctx);
+    let zpt_to_claim: Coin<ZBS_COIN> = coin::take(&mut game_info.zpt_pot, claim_amount, ctx);
     transfer::public_transfer(zpt_to_claim, sender);
 
     game_info.claim_nonce = game_info.claim_nonce + 1;
@@ -193,7 +194,7 @@ module zombie_house::zombie_house {
   /// buy zombie with specific amount of zpt token
   public entry fun buy_zombie(
     game_info: &mut GameInfo,
-    paid: Coin<ZPT_COIN>, 
+    paid: Coin<ZBS_COIN>, 
     nft_count: u64,
     types: vector<u8>,
     types_sig: vector<u8>,
@@ -211,7 +212,7 @@ module zombie_house::zombie_house {
 
     let paid_amount = coin::value(&paid);
     let paid_balance = coin::into_balance(paid);
-    let zpt_to_return: Coin<ZPT_COIN> = coin::take(&mut paid_balance, paid_amount - zpt_required, ctx);
+    let zpt_to_return: Coin<ZBS_COIN> = coin::take(&mut paid_balance, paid_amount - zpt_required, ctx);
     // transfer extra coin to sender
     transfer::public_transfer(zpt_to_return, sender);
     balance::join(&mut game_info.zpt_pot, paid_balance);
@@ -221,6 +222,9 @@ module zombie_house::zombie_house {
     let created_zombies: vector<u32> = vector::empty();
     let i = 0;
     while (i < nft_count) {
+
+      let nft_type = *vector::borrow(&types, i);
+
       game_info.current_nft_index = game_info.current_nft_index + 1;
       vector::push_back(
         &mut game_info.zombies, 
@@ -228,9 +232,9 @@ module zombie_house::zombie_house {
           zombie_owner: sender,
           zombie_id: (game_info.current_nft_index as u32),
           level: 1,
+          type: nft_type
       });
 
-      let nft_type = *vector::borrow(&types, i);
       // mint nft
       mint_nft(
         get_nft_name(nft_type), 
@@ -285,14 +289,14 @@ module zombie_house::zombie_house {
     assert!(sender == game_info.owner, EINVALID_OWNER);
 
     let pot_amount = balance::value(&game_info.zpt_pot);
-    let zpt_to_withdraw: Coin<ZPT_COIN> = coin::take(&mut game_info.zpt_pot, pot_amount, ctx);
+    let zpt_to_withdraw: Coin<ZBS_COIN> = coin::take(&mut game_info.zpt_pot, pot_amount, ctx);
     transfer::public_transfer(zpt_to_withdraw, sender);
   }
 
   /// owner deposit zpt to the contract for airdrop
   public entry fun deposit_zpt (
     game_info: &mut GameInfo,
-    deposit_zpt: Coin<ZPT_COIN>, 
+    deposit_zpt: Coin<ZBS_COIN>, 
     amount: u64,
     ctx: &mut TxContext
   ) {
@@ -302,7 +306,7 @@ module zombie_house::zombie_house {
 
     let paid_amount = coin::value(&deposit_zpt);
     let paid_balance = coin::into_balance(deposit_zpt);
-    let zpt_to_return: Coin<ZPT_COIN> = coin::take(&mut paid_balance, paid_amount - amount, ctx);
+    let zpt_to_return: Coin<ZBS_COIN> = coin::take(&mut paid_balance, paid_amount - amount, ctx);
     // transfer extra coin to sender
     transfer::public_transfer(zpt_to_return, sender);
     balance::join(&mut game_info.zpt_pot, paid_balance);
@@ -321,7 +325,7 @@ module zombie_house::zombie_house {
     let pot_amount = balance::value(&game_info.zpt_pot);
     assert!(game_info.airdrop_amount <= pot_amount, EINSUFFICIENT_ZPT_AMOUNT);
 
-    let zpt_to_withdraw: Coin<ZPT_COIN> = coin::take(&mut game_info.zpt_pot, game_info.airdrop_amount, ctx);
+    let zpt_to_withdraw: Coin<ZBS_COIN> = coin::take(&mut game_info.zpt_pot, game_info.airdrop_amount, ctx);
     transfer::public_transfer(zpt_to_withdraw, sender);
 
     vector::push_back(&mut game_info.claimed_users, sender);
@@ -433,7 +437,7 @@ module zombie_house::zombie_house {
           name: nft.name,
       });
 
-      transfer::public_transfer(nft, sender);
+      transfer::transfer(nft, sender);
   }
 
   fun get_zombie_amount(zombies: &vector<ZombieInfo>, owner: address): u64 {

@@ -279,13 +279,24 @@ const signAndVerify = async () => {
 }
 
 const main = async () => {
+  let nftType = "0x59d312f7032ec92a6427e74d86a32efb65522ffcbf6f98c12c42297e7c6b0193::zombie_house::ZombieInfo";
   const objects = await provider.getOwnedObjects({
-    owner: userAddress
+      owner: "0xc0f7670e336119c86f4ddf0efc4b964bedaba9baca170593664e9eee31886389"
   });
-  console.log(objects);
+  let objectIds = [];
+  if (objects && objects.data) {
+    objects.data.forEach(d => objectIds.push(d.data.objectId));
+  }
+
+  let objectDetailList = await provider.multiGetObjects({ ids: objectIds, options: { showType: true } });
+  let nftList = [];
+  objectDetailList.forEach((obj) => { if(obj.data.type === nftType) nftList.push(obj.data); });
+
+  console.log("nfts =", nftList);
 }
 
-// main()
+
+main()
 // todo: buyzombie_by_token
 //~ 3. mint event fetch
 //~~ 4. execute transaction

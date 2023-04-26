@@ -6,10 +6,10 @@ published-at = "0x3e3465e6f4810a8e08ae656067f2790179e466a9ca8fdbc4ed574a5fc7ef87
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "a63f425b9999c7fdfe483598720a9effc0acdc9e" }
 NftProtocol = { local = "../nft-protocol/" }
-zpt_coin = { local = "../zpt_coin" }
+zbs_coin = { local = "../zbs_coin" }
 
 [addresses]
 zombie_house =  "0x0"
 sui =  "0000000000000000000000000000000000000000000000000000000000000002"
 nft_protocol = "0x724c3f73b2a11b3f559311ebde3d31ef36d337c4c9979e0f65c82dbddaaae4d9"
-zpt_coin = "0x56c77a6802092355c906ba967f2f557189b1bf6ccf0f5a15e53fe0b13d83da12"
+zbs_coin = "0xb16731fc3cbfc6c953e63bcdf6d5a38d6b7020cc0fded96b43d4720024f9c404"

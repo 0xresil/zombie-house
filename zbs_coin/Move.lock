@@ -4,9 +4,7 @@
 version = 0
 
 dependencies = [
-  { name = "NftProtocol" },
   { name = "Sui" },
-  { name = "zbs_coin" },
 ]
 
 [[move.package]]
@@ -14,34 +12,9 @@ name = "MoveStdlib"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "a63f425b9999c7fdfe483598720a9effc0acdc9e", subdir = "crates/sui-framework/packages/move-stdlib" }
 
 [[move.package]]
-name = "NftProtocol"
-source = { local = "../nft-protocol" }
-
-dependencies = [
-  { name = "Originmate" },
-  { name = "Sui" },
-]
-
-[[move.package]]
-name = "Originmate"
-source = { git = "https://github.com/Origin-Byte/originmate.git", rev = "devnet", subdir = "" }
-
-dependencies = [
-  { name = "Sui" },
-]
-
-[[move.package]]
 name = "Sui"
 source = { git = "https://github.com/MystenLabs/sui.git", rev = "a63f425b9999c7fdfe483598720a9effc0acdc9e", subdir = "crates/sui-framework/packages/sui-framework" }
 
 dependencies = [
   { name = "MoveStdlib" },
-]
-
-[[move.package]]
-name = "zbs_coin"
-source = { local = "../zbs_coin" }
-
-dependencies = [
-  { name = "Sui" },
 ]

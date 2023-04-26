@@ -1,11 +1,11 @@
 [package]
-name = "zpt_coin"
+name = "zbs_coin"
 version = "0.0.1"
-published-at = "0x56c77a6802092355c906ba967f2f557189b1bf6ccf0f5a15e53fe0b13d83da12"
+published-at = "0xb16731fc3cbfc6c953e63bcdf6d5a38d6b7020cc0fded96b43d4720024f9c404"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "a63f425b9999c7fdfe483598720a9effc0acdc9e" }
 
 [addresses]
-zpt_coin =  "_"
+zbs_coin =  "0xb16731fc3cbfc6c953e63bcdf6d5a38d6b7020cc0fded96b43d4720024f9c404"
 sui =  "0000000000000000000000000000000000000000000000000000000000000002"
