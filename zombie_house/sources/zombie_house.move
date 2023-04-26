@@ -60,7 +60,8 @@ module zombie_house::zombie_house {
     id: UID,
     name: String,
     description: String,
-    url: Url
+    url: Url,
+    token_id: u64
   }
 
   struct ZombieInfo has copy, drop, store {
@@ -240,6 +241,7 @@ module zombie_house::zombie_house {
         get_nft_name(nft_type), 
         string::utf8(b"This is a Zombie NFT who makes ZPT coins."), 
         get_nft_uri(game_info.domain, nft_type), 
+        game_info.current_nft_index,
         &game_info.mint_cap,
         ctx
       );
@@ -272,6 +274,7 @@ module zombie_house::zombie_house {
         get_nft_name(nft_type),
         string::utf8(b"This is a test Zombie NFT"), 
         get_nft_uri(game_info.domain, nft_type), 
+        game_info.current_nft_index,
         &game_info.mint_cap,
         ctx
       );
@@ -420,6 +423,7 @@ module zombie_house::zombie_house {
       name: String,
       description: String,
       url: String,
+      token_id: u64,
       _mint_cap: &MintCap<ZombieNFT>,
       ctx: &mut TxContext
   ) {
@@ -428,7 +432,8 @@ module zombie_house::zombie_house {
           id: object::new(ctx),
           name,
           description,
-          url: url::new_unsafe(string::to_ascii(url))
+          url: url::new_unsafe(string::to_ascii(url)),
+          token_id
       };
 
       event::emit(NFTMinted {
@@ -551,6 +556,7 @@ module zombie_house::zombie_house {
           string::utf8(b"Simple NFT"),
           string::utf8(b"A simple NFT on Sui"),
           string::utf8(b"test.xyz"),
+          0u64,
           &game_info.mint_cap,
           ctx(&mut scenario)
       );

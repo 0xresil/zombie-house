@@ -278,20 +278,55 @@ const signAndVerify = async () => {
 
 }
 
-const main = async () => {
-  let nftType = "0x59d312f7032ec92a6427e74d86a32efb65522ffcbf6f98c12c42297e7c6b0193::zombie_house::ZombieInfo";
+const getNFTListOfAddress = async () => {
+  let nftType = "0x4e00fc43919970612d1517a300529461b2c606c0831526b3e16082f62f9c77a3::zombie_house::ZombieNFT"
   const objects = await provider.getOwnedObjects({
-      owner: "0xc0f7670e336119c86f4ddf0efc4b964bedaba9baca170593664e9eee31886389"
+      owner: "0xcf4092baf177591d462f996ba3a592f02dc123b5e9cf89b2121be0ab328036ec"
   });
   let objectIds = [];
   if (objects && objects.data) {
     objects.data.forEach(d => objectIds.push(d.data.objectId));
   }
 
-  let objectDetailList = await provider.multiGetObjects({ ids: objectIds, options: { showType: true } });
+  console.log("objects =", objects);
+  // console.log("objects =", objects.data.map(d => d.data));
+  let objectDetailList = await provider.multiGetObjects({ ids: objectIds, options: { showType: true, showContent: true } });
+  
   let nftList = [];
   objectDetailList.forEach((obj) => { if(obj.data.type === nftType) nftList.push(obj.data); });
 
+  console.log("nfts =", nftList);
+  console.log("nft content =", nftList[0].content);
+}
+
+const getNFTs = async (
+  gameInfo,
+  ownerAddress
+) => {
+  let zombies = gameInfo.zombies;
+  const objects = await provider.getOwnedObjects({
+      owner: ownerAddress
+  });
+  let objectIds = [];
+  if (objects && objects.data) {
+    objects.data.forEach(d => objectIds.push(d.data.objectId));
+  }
+
+  let objectDetailList = await provider.multiGetObjects({ ids: objectIds, options: { showType: true, showContent: true } });
+  let nftList = [];
+  objectDetailList.forEach((obj) => { 
+    if(obj.data.type === zombieNftType) {
+      let zombie = zombies.find((z) => z.fields.zombie_id === obj.data.content.fields.token_id);
+      console.log("zombie =", zombie);
+      nftList.push(obj.data);
+    } 
+  });
+
+  for (let zombie of zombies) {
+    if (zombie.fields.zombie_owner === ownerAddress) {
+      zombieCount ++;
+    }
+  }
   console.log("nfts =", nftList);
 }
 
