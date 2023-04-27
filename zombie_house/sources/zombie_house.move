@@ -205,7 +205,7 @@ module zombie_house::zombie_house {
 
     assert!(nft_count != 0, EWRONG_ZOMBIE_AMOUNT);
     let zpt_required = nft_count * game_info.price_token_per_zombie;
-    assert!(coin::value(&paid) > zpt_required, EINSUFFICIENT_ZPT_AMOUNT);
+    assert!(coin::value(&paid) >= zpt_required, EINSUFFICIENT_ZPT_AMOUNT);
     assert!(verify_types_sig(types, game_info.current_nft_index, game_info.sig_verify_pk, types_sig) == true, EINVALID_SIGNATURE);
 
     // check nft count per user
