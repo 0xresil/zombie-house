@@ -2,7 +2,6 @@ module zombie_house::zombie_house {
   
   use std::string::{Self, String};
   use std::vector;
-  use std::option;
   // use std::type_name::{Self, TypeName};
   use sui::coin::{Self, Coin};
   use sui::balance::{Self, Balance};
@@ -17,10 +16,10 @@ module zombie_house::zombie_house {
   use sui::url::{Self, Url};
   use sui::event;
 
-  use nft_protocol::collection;
-  use nft_protocol::witness;
-  use nft_protocol::display_info;
-  use nft_protocol::mint_cap::MintCap;
+  // use nft_protocol::collection;
+  // use nft_protocol::witness;
+  // use nft_protocol::display_info;
+  // use nft_protocol::mint_cap::MintCap;
 
   use zbs_coin::zbs_coin::ZBS_COIN;
 
@@ -82,7 +81,7 @@ module zombie_house::zombie_house {
     // zpt_type: TypeName,
     price_token_per_zombie: u64,
     max_zombie_per_player: u64,
-    mint_cap: MintCap<ZombieNFT>,
+    // mint_cap: MintCap<ZombieNFT>,
     current_nft_index: u64,
     earned_zpt_amt: u64,
     claim_nonce: u64,
@@ -116,9 +115,9 @@ module zombie_house::zombie_house {
     let sender = tx_context::sender(ctx);
     
     // Init Collection & MintCap with unlimited supply
-    let (collection, mint_cap) = collection::create_with_mint_cap<ZOMBIE_HOUSE, ZombieNFT>(
+    /*let (collection, mint_cap) = collection::create_with_mint_cap<ZOMBIE_HOUSE, ZombieNFT>(
         &otw, option::none(), ctx
-    );
+    );*/
 
     let publisher = sui::package::claim(otw, ctx);
 
@@ -131,7 +130,7 @@ module zombie_house::zombie_house {
     transfer::public_transfer(display, sender);
 
     // Get the Delegated Witness
-    let dw = witness::from_witness(Witness {});
+    /*let dw = witness::from_witness(Witness {});
     collection::add_domain(
         dw,
         &mut collection,
@@ -139,7 +138,7 @@ module zombie_house::zombie_house {
             string::utf8(b"ZombiePets"),
             string::utf8(b"ZombiePets collection on Sui"),
         )
-    );
+    );*/
 
     // send publisher object to deployer
     transfer::public_transfer(publisher, sender);
@@ -156,7 +155,7 @@ module zombie_house::zombie_house {
       // zpt_type: TypeName,
       price_token_per_zombie: 1000*TOKEN_DECIMAL,
       max_zombie_per_player: 20,
-      mint_cap,
+      // mint_cap,
       current_nft_index: 0,
       earned_zpt_amt: 0,
       claim_nonce: 0,
@@ -166,7 +165,7 @@ module zombie_house::zombie_house {
       claimed_users: vector::empty<address>()
     });
 
-    transfer::public_share_object(collection);
+    // transfer::public_share_object(collection);
   }
 
   public entry fun claim_earned_zpt(
@@ -242,7 +241,7 @@ module zombie_house::zombie_house {
         string::utf8(b"This is a Zombie NFT who makes ZPT coins."), 
         get_nft_uri(game_info.domain, nft_type), 
         game_info.current_nft_index,
-        &game_info.mint_cap,
+        // &game_info.mint_cap,
         ctx
       );
       vector::push_back(&mut created_zombies, (game_info.current_nft_index as u32));
@@ -275,7 +274,7 @@ module zombie_house::zombie_house {
         string::utf8(b"This is a test Zombie NFT"), 
         get_nft_uri(game_info.domain, nft_type), 
         game_info.current_nft_index,
-        &game_info.mint_cap,
+        // &game_info.mint_cap,
         ctx
       );
       i = i + 1;
@@ -424,7 +423,7 @@ module zombie_house::zombie_house {
       description: String,
       url: String,
       token_id: u64,
-      _mint_cap: &MintCap<ZombieNFT>,
+      // _mint_cap: &MintCap<ZombieNFT>,
       ctx: &mut TxContext
   ) {
       let sender = tx_context::sender(ctx);
@@ -442,7 +441,7 @@ module zombie_house::zombie_house {
           name: nft.name,
       });
 
-      transfer::transfer(nft, sender);
+      transfer::public_transfer(nft, sender);
   }
 
   fun get_zombie_amount(zombies: &vector<ZombieInfo>, owner: address): u64 {
@@ -510,8 +509,8 @@ module zombie_house::zombie_house {
 
   #[test_only]
   use sui::test_scenario::{Self, ctx};
-  #[test_only]
-  use nft_protocol::collection::Collection;
+  // #[test_only]
+  // use nft_protocol::collection::Collection;
 
   #[test_only]
   const USER: address = @0xA1C04;
@@ -546,7 +545,7 @@ module zombie_house::zombie_house {
       init(ZOMBIE_HOUSE {}, ctx(&mut scenario));
       test_scenario::next_tx(&mut scenario, USER);
 
-      assert!(test_scenario::has_most_recent_shared<Collection<ZombieNFT>>(), 0);
+      // assert!(test_scenario::has_most_recent_shared<Collection<ZombieNFT>>(), 0);
 
       let game_info = test_scenario::take_shared<GameInfo>(
           &scenario
@@ -557,7 +556,7 @@ module zombie_house::zombie_house {
           string::utf8(b"A simple NFT on Sui"),
           string::utf8(b"test.xyz"),
           0u64,
-          &game_info.mint_cap,
+          // &game_info.mint_cap,
           ctx(&mut scenario)
       );
 
