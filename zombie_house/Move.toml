@@ -4,13 +4,13 @@ version = "0.0.1"
 published-at = "0x562726ea7f0a8f963aa7644537766adb3f8c0776c51fee899345ffd3e44828c5"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet" }
 # NftProtocol = { local = "../nft-protocol/" }
-# NftProtocol = { git = "https://github.com/Origin-Byte/nft-protocol", subdir = "", rev = "testnet" }
+# NftProtocol = { git = "https://github.com/Origin-Byte/nft-protocol", subdir = "", rev = "mainnet" }
 zbs_coin = { local = "../zbs_coin" }
 
 [addresses]
 zombie_house =  "0x0"
 sui =  "0000000000000000000000000000000000000000000000000000000000000002"
 # nft_protocol = "0x724c3f73b2a11b3f559311ebde3d31ef36d337c4c9979e0f65c82dbddaaae4d9"
-zbs_coin = "0x29a8ea99ff4f9e1604371ed1e873961cb61b43647d8b68203933a1fa0d295f50"
+zbs_coin = "0x70ee7a2d2517565ff0aaaee442f5950aa55f53a765674e4074f409c474011b14"

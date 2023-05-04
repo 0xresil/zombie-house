@@ -331,7 +331,27 @@ const getNFTs = async (
 }
 
 
-main()
+const make_daily_reward_signature = async (nftCount) => {
+  let privKey = "0x441c0f64eaffbd00a52a8d122caa717378c940598790d8930eb713ef23e77275";
+  let keypair = Ed25519Keypair.fromSecretKey(fromHEX(privKey));
+  console.log("pubkey =", toHEX(keypair.getPublicKey().toBytes()));
+  let types = new Uint8Array([0 ,0, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0]);
+  types.set(numToUint8Array(10_000_000_000), 0);
+  types.set(numToUint8Array(0), 8);
+  let signData = types;
+  
+  console.log("hex signData =", toHEX(signData));
+  const signature = keypair.signData(signData);
+  console.log(signature);
+  console.log("hex sig =", toHEX(signature));
+
+  console.log("pk =", keypair.getPublicKey().toBytes());
+
+  let keyStr = "";
+  keypair.getPublicKey().toBytes().forEach((v) => keyStr += String.fromCharCode(v));
+  console.log('keystr =', keyStr);
+}
+// main()
 // todo: buyzombie_by_token
 //~ 3. mint event fetch
 //~~ 4. execute transaction
@@ -351,5 +371,5 @@ getGameInfoAddress().then(async (gameInfoId) => {
 
 
 // signTypesArray(10);
-registerClaimEvent();
+make_daily_reward_signature();
 // registerAllEvents();

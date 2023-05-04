@@ -1,11 +1,11 @@
 [package]
 name = "zbs_coin"
 version = "0.0.1"
-published-at = "0x29a8ea99ff4f9e1604371ed1e873961cb61b43647d8b68203933a1fa0d295f50"
+published-at = "0x70ee7a2d2517565ff0aaaee442f5950aa55f53a765674e4074f409c474011b14"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet" }
 
 [addresses]
-zbs_coin =  "0x29a8ea99ff4f9e1604371ed1e873961cb61b43647d8b68203933a1fa0d295f50"
+zbs_coin =  "0x70ee7a2d2517565ff0aaaee442f5950aa55f53a765674e4074f409c474011b14"
 sui =  "0000000000000000000000000000000000000000000000000000000000000002"

@@ -1,4 +1,4 @@
-module zbs_coin::zbs_coin {
+module zbs_coin::dzbs {
   
   use std::option;
   use sui::coin::{Self};
@@ -7,15 +7,15 @@ module zbs_coin::zbs_coin {
   use sui::tx_context::{Self, TxContext};
   use sui::url::{Self};
 
-  struct ZBS_COIN has drop {}
+  struct DZBS has drop {}
 
-  fun init(otw: ZBS_COIN, ctx: &mut TxContext) {
+  fun init(otw: DZBS, ctx: &mut TxContext) {
     let sender = tx_context::sender(ctx);
-    let (treasury_cap, metadata) = coin::create_currency<ZBS_COIN>(
+    let (treasury_cap, metadata) = coin::create_currency<DZBS>(
         otw, 
         9, 
-        b"ZBS", 
-        b"Zombie Sui Coin", 
+        b"DZBS", 
+        b"Dummy Zombie Sui Coin", 
         b"Reward Token from Zombie Sui NFTs", 
         option::some(url::new_unsafe_from_bytes(
           b"https://s2.coinmarketcap.com/static/img/coins/64x64/12192.png"
@@ -45,10 +45,10 @@ module zbs_coin::zbs_coin {
   fun it_inits_module() {
       let scenario = test_scenario::begin(USER);
 
-      init(ZBS_COIN {}, ctx(&mut scenario));
+      init(DZBS {}, ctx(&mut scenario));
       test_scenario::next_tx(&mut scenario, USER);
 
-      let coin1 = test_scenario::take_from_sender<Coin<ZBS_COIN>>(&mut scenario);
+      let coin1 = test_scenario::take_from_sender<Coin<DZBS>>(&mut scenario);
       assert!(coin::value(&coin1) == 1_000_000_000_000_000_000, 111);
       test_scenario::return_to_address(USER, coin1);
       // assert!(!test_scenario::has_most_recent_for_sender<TreasuryCap<ZBS_COIN>>(&mut scenario), 0);
