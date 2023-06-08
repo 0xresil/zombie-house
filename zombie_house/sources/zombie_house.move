@@ -2,24 +2,16 @@ module zombie_house::zombie_house {
   
   use std::string::{Self, String};
   use std::vector;
-  // use std::type_name::{Self, TypeName};
   use sui::coin::{Self, Coin};
   use sui::balance::{Self, Balance};
   use sui::object::{Self, ID, UID};
   use sui::transfer;
   use sui::tx_context::{Self, TxContext};
   use sui::ed25519;
-  // use sui::sui::SUI;
-  // use sui::clock::{Self, Clock};
   
   use sui::display;
   use sui::url::{Self, Url};
   use sui::event;
-
-  // use nft_protocol::collection;
-  // use nft_protocol::witness;
-  // use nft_protocol::display_info;
-  // use nft_protocol::mint_cap::MintCap;
 
   use zbs_coin::dzbs::DZBS;
 
